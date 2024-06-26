@@ -7,6 +7,7 @@ Some setup instructions that are used here can also be found in the repository a
 ## Environment Setup
 
 **Miniconda Installation and Environment Creation**
+
 Run the command: 
 ```
 node -p "process.arch"
@@ -24,6 +25,7 @@ conda activate tmc2209
 ```
 
 **Motor Driver Dependency Installation**
+
 In order to install the required dependencies we will have to run a few commands:
 ```
 pip3 install TMC-2209-Raspberry-Pi
