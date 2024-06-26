@@ -6,7 +6,7 @@ Some setup instructions that are used here can also be found in the repository a
 
 ## Environment Setup
 
-**Miniconda Installation and Environment Creation**
+1. **Miniconda Installation and Environment Creation**
 
 Run the command: 
 ```
@@ -24,13 +24,10 @@ To activate your environment after it is created, run the command:
 conda activate tmc2209
 ```
 
-**Motor Driver Dependency Installation**
+2. **Motor Driver Dependency Installation**
 
-In order to install the required dependencies we will have to run a few commands:
+In order to install the required dependencies we will have to run a command:
 ```
-pip3 install TMC-2209-Raspberry-Pi
+pip install -r requirements.txt
 ```
-and
-```
-pip3 install gpiozero
-```
+Make sure you are in your conda environment when you run this.
