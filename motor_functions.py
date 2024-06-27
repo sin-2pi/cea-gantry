@@ -6,8 +6,8 @@ from src.TMC_2209._TMC_2209_GPIO_board import Board
 
 # Constructor, sets GPIO pins used to communicate with the RPi5.
 payload_motor = TMC_2209(21, 16, 20, skip_uart_init=True)
-vert_motor1 = TMC_2209(17, 27, 22, skip_uart_init=True)
-vert_motor2 = TMC_2209(23, 24, 25, skip_uart_init=True)
+#vert_motor1 = TMC_2209(17, 27, 22, skip_uart_init=True)
+#vert_motor2 = TMC_2209(23, 24, 25, skip_uart_init=True)
 
 # Setting max speed and acceleration in terms of fullsteps per second.
 payload_motor.set_acceleration_fullstep(2500)
@@ -43,12 +43,13 @@ def move_motor_horizontally():
         camera_snapshot()
         time.sleep(1)
     payload_motor.run_to_position_steps(0)
-    # move_motor_horizontally()
+    #if payload_motor.get_current_position() == 0:
+        #move_motor_horizontally()
 
 
 def move_motor_vertically():
-    vert_motor1.run_to_position_steps(300)
-    vert_motor2.run_to_position_steps(300)
+    vert_motor1.run_to_position_steps(1626)
+    vert_motor2.run_to_position_steps(1626)
 
 
 def camera_snapshot():
@@ -59,13 +60,11 @@ def camera_snapshot():
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 2160)  # Height
 
     frame_count = 0
-    target_frame_count = 100
+    target_frame_count = 150
 
 
     while True:
         ret, frame = cap.read()
-
-        cv2.imshow('Live Video Feed', frame)
 
         frame_count += 1
         if frame_count >= target_frame_count:
