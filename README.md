@@ -10,6 +10,8 @@ The goal of this project is to control a payload on a custom-built gantry system
   
 It is intended for data acquisition of plants in a vertical tower hydroponic system. 
 
+**_This project is still in progress currently._**
+
 ## Disclaimer
 The motor library used can be found [here](https://github.com/Chr157i4n/TMC2209_Raspberry_Pi).
 Some setup instructions that are used here can also be found in the repository that is linked.
