@@ -45,16 +45,22 @@ class MotorControl:
         self.payloadMotor.run_to_position_steps(self.stepHzn)
 
     def move_motor_vertically(self):
+        def move_motor1():
+            self.vertMotor1.run_to_position_steps(self.stepLeft)
+
+        def move_motor2():
+            self.vertMotor2.run_to_position_steps(self.stepRight)
+
         threads = [
-            threading.Thread(
-                target=motor.run_to_position_steps, args=(self.stepLeft, self.stepRight)
-            )
-            for motor in [self.vertMotor1, self.vertMotor2]
+            threading.Thread(target=move_motor1),
+            threading.Thread(target=move_motor2),
         ]
-        for thread in threads:
-            thread.start()
-        for thread in threads:
-            thread.join()
+
+    for thread in threads:
+        thread.start()
+
+    for thread in threads:
+        thread.join()
 
     def move_vrt_home(self):
         threads = [
