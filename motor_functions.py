@@ -27,29 +27,32 @@ class MotorControl:
             motor.set_max_speed_fullstep(3000)
             motor.set_motor_enabled(True)
             motor.set_current_position(0)
+
     def main_motor_movement(self):
         while True:
             self.move_motor_horizontally()
             if self.payloadMotor.get_current_position() > self.gantryEndHzn:
-                
                 self.payloadMotor.run_to_position_steps(0)
                 self.stepHzn = 1600
                 self.move_motor_vertically()
-                
-        
-             
-    print("Scanning complete")
+                if self.vertMotor1.get_current_position() > self.gantryEndVrt:
+                    self.move_vrt_home()
+                    break
+
     def move_motor_horizontally(self):
-        self.payloadMotor.run_to_position_steps(self.stepHzn)
         self.camera_snapshot()
+        self.payloadMotor.run_to_position_steps(self.stepHzn)
         self.stepHzn += 1600
+
     def move_motor_vertically(self):
         def move_motor1():
             self.vertMotor1.run_to_position_steps(self.stepLeft)
             self.stepLeft += 1626
+
         def move_motor2():
             self.vertMotor2.run_to_position_steps(self.stepRight)
             self.stepRight -= 1626
+
         threads = [
             threading.Thread(target=move_motor1),
             threading.Thread(target=move_motor2),
@@ -74,7 +77,6 @@ class MotorControl:
     def camera_snapshot(self):
         cap = cv2.VideoCapture(0)
 
-    # Set the resolution
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, 3840)  # Width
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 2160)  # Height
 
@@ -84,11 +86,8 @@ class MotorControl:
         while True:
             ret, frame = cap.read()
 
-        
-
             frame_count += 1
             if frame_count >= target_frame_count:
-            # Generate a unique file name using the current timestamp
                 timestamp = time.strftime("%Y%m%d-%H%M%S")
                 file_name = f"captured_image_{timestamp}.jpg"
                 cv2.imwrite(file_name, frame)
@@ -96,9 +95,6 @@ class MotorControl:
 
         cap.release()
         cv2.destroyAllWindows()
-
-
-
 
     def move_motor_home(self):
         for motor in [self.payloadMotor, self.vertMotor1, self.vertMotor2]:
