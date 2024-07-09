@@ -14,7 +14,7 @@ class MotorControl:
         self.vertMotor2 = TMC_2209(23, 24, 25, skip_uart_init=True)
 
         self.gantryEndHzn = 16000
-        self.gantryEndVrt = 16000
+        self.gantryEndVrt = 5000
         self.stepRight = -1626
         self.stepLeft = 1626
         self.stepHzn = 1600
@@ -27,40 +27,39 @@ class MotorControl:
             motor.set_max_speed_fullstep(3000)
             motor.set_motor_enabled(True)
             motor.set_current_position(0)
-
     def main_motor_movement(self):
-        while self.payloadMotor.get_current_position() < self.gantryEndHzn:
+        while True:
             self.move_motor_horizontally()
-            self.stepHzn += self.stepHzn
-            time.sleep(1)
-            self.camera_snapshot()
-            time.sleep(1)
-        self.move_motor_vertically()
-        self.stepright -= 1626
-        self.stepleft += 1626
-        if self.payloadMotor.get_current_position() == 0:
-            self.move_motor_horizontally()
-
+            if self.payloadMotor.get_current_position() > self.gantryEndHzn:
+                
+                self.payloadMotor.run_to_position_steps(0)
+                self.stepHzn = 1600
+                self.move_motor_vertically()
+                
+        
+             
+    print("Scanning complete")
     def move_motor_horizontally(self):
         self.payloadMotor.run_to_position_steps(self.stepHzn)
-
+        self.camera_snapshot()
+        self.stepHzn += 1600
     def move_motor_vertically(self):
         def move_motor1():
             self.vertMotor1.run_to_position_steps(self.stepLeft)
-
+            self.stepLeft += 1626
         def move_motor2():
             self.vertMotor2.run_to_position_steps(self.stepRight)
-
+            self.stepRight -= 1626
         threads = [
             threading.Thread(target=move_motor1),
             threading.Thread(target=move_motor2),
         ]
 
-    for thread in threads:
-        thread.start()
+        for thread in threads:
+            thread.start()
 
-    for thread in threads:
-        thread.join()
+        for thread in threads:
+            thread.join()
 
     def move_vrt_home(self):
         threads = [
@@ -73,21 +72,33 @@ class MotorControl:
             thread.join()
 
     def camera_snapshot(self):
-        with cv2.VideoCapture(0) as cap:
-            cap.set(cv2.CAP_PROP_FRAME_WIDTH, 3840)
-            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 2160)
+        cap = cv2.VideoCapture(0)
 
-            frame_count = 0
-            target_frame_count = 150
+    # Set the resolution
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 3840)  # Width
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 2160)  # Height
 
-            while frame_count < target_frame_count:
-                ret, frame = cap.read()
-                frame_count += 1
+        frame_count = 0
+        target_frame_count = 100
 
-            if ret:
+        while True:
+            ret, frame = cap.read()
+
+        
+
+            frame_count += 1
+            if frame_count >= target_frame_count:
+            # Generate a unique file name using the current timestamp
                 timestamp = time.strftime("%Y%m%d-%H%M%S")
                 file_name = f"captured_image_{timestamp}.jpg"
                 cv2.imwrite(file_name, frame)
+                break
+
+        cap.release()
+        cv2.destroyAllWindows()
+
+
+
 
     def move_motor_home(self):
         for motor in [self.payloadMotor, self.vertMotor1, self.vertMotor2]:
