@@ -7,10 +7,13 @@ The goal of this project is to control a payload on a custom-built gantry system
 - 4K RGB camera module
 - RPi5
 - TMC2209 motor driver
+
   
 It is intended for data acquisition of plants in a vertical tower hydroponic system. 
 
 **_This project is still in progress currently._**
+
+![gantry](https://github.com/user-attachments/assets/ce5efba7-79d5-4fcc-a520-3c04dc56f80d)
 
 ## Disclaimer
 The motor library used can be found [here](https://github.com/Chr157i4n/TMC2209_Raspberry_Pi).
