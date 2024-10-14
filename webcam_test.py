@@ -3,6 +3,26 @@ import os
 from datetime import datetime
 
 
+def get_highest_resolution(cap):
+    resolutions = [
+        (1920, 1080),  # Full HD
+        (1280, 720),  # HD
+        (1024, 768),  # XGA
+        (800, 600),  # SVGA
+    ]
+
+    for width, height in resolutions:
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+        actual_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        actual_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+        if actual_width >= width and actual_height >= height:
+            return actual_width, actual_height
+
+    return actual_width, actual_height  # Return the last supported resolution
+
+
 def capture_photos():
     # Initialize the webcam
     cap = cv2.VideoCapture(0)
@@ -11,20 +31,9 @@ def capture_photos():
         print("Error: Could not open webcam.")
         return
 
-    # Set resolution to 4K (3840x2160)
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 3840)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 2160)
-
-    # Check if the camera supports the requested resolution
-    actual_width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-    actual_height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
-
-    if actual_width != 3840 or actual_height != 2160:
-        print(
-            f"Warning: Camera does not support 4K. Current resolution: {actual_width}x{actual_height}"
-        )
-    else:
-        print("Camera set to 4K resolution.")
+    # Get the highest supported resolution
+    width, height = get_highest_resolution(cap)
+    print(f"Camera set to resolution: {width}x{height}")
 
     # Create a directory to store the photos
     output_dir = "webcam_photos"
@@ -40,9 +49,8 @@ def capture_photos():
             print("Error: Can't receive frame (stream end?). Exiting ...")
             break
 
-        # Display the resulting frame (resized for display purposes)
-        display_frame = cv2.resize(frame, (1920, 1080))
-        cv2.imshow("Webcam (Preview)", display_frame)
+        # Display the resulting frame
+        cv2.imshow("Webcam", frame)
 
         # Wait for key press
         key = cv2.waitKey(1) & 0xFF
@@ -51,9 +59,11 @@ def capture_photos():
         if key == ord("s"):
             photo_count += 1
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"{output_dir}/photo_4K_{timestamp}_{photo_count}.jpg"
+            filename = (
+                f"{output_dir}/photo_{width}x{height}_{timestamp}_{photo_count}.jpg"
+            )
             cv2.imwrite(filename, frame)
-            print(f"4K Photo saved: {filename}")
+            print(f"Photo saved: {filename}")
 
         # If 'q' is pressed, quit the program
         elif key == ord("q"):
