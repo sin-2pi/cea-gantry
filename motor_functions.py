@@ -1,106 +1,183 @@
 import time
 import cv2
 import threading
-from typing import Tuple
+from typing import Dict, List, Tuple
+from abc import ABC, abstractmethod
 
 from src.TMC_2209.TMC_2209_StepperDriver import TMC_2209
-from src.TMC_2209._TMC_2209_GPIO_board import Board
 
 
-class MotorControl:
-    def __init__(self):
-        self.payloadMotor = TMC_2209(21, 16, 20, skip_uart_init=True)
-        self.vertMotor1 = TMC_2209(17, 27, 22, skip_uart_init=True)
-        self.vertMotor2 = TMC_2209(23, 24, 25, skip_uart_init=True)
+class Motor(ABC):
+    def __init__(self, name: str, pin_step: int, pin_dir: int, pin_en: int):
+        self.name = name
+        self.motor = TMC_2209(pin_step, pin_dir, pin_en, skip_uart_init=True)
+        self._setup_motor()
 
-        self.gantryEndHzn = 16000
-        self.gantryEndVrt = 5000
-        self.stepRight = -1626
-        self.stepLeft = 1626
-        self.stepHzn = 1600
+    def _setup_motor(self):
+        self.motor.set_acceleration_fullstep(2500)
+        self.motor.set_max_speed_fullstep(3000)
+        self.motor.set_motor_enabled(True)
+        self.motor.set_current_position(0)
 
-        self._setup_motors()
+    @abstractmethod
+    def move(self, steps: int):
+        pass
 
-    def _setup_motors(self):
-        for motor in [self.payloadMotor, self.vertMotor1, self.vertMotor2]:
-            motor.set_acceleration_fullstep(2500)
-            motor.set_max_speed_fullstep(3000)
-            motor.set_motor_enabled(True)
-            motor.set_current_position(0)
+    def move_to_home(self):
+        self.motor.run_to_position_steps(0)
 
-    def main_motor_movement(self):
-        while True:
-            self.move_motor_horizontally()
-            if self.payloadMotor.get_current_position() > self.gantryEndHzn:
-                self.payloadMotor.run_to_position_steps(0)
-                self.stepHzn = 1600
-                self.move_motor_vertically()
-                if self.vertMotor1.get_current_position() > self.gantryEndVrt:
-                    self.move_vrt_home()
-                    break
+    def get_position(self) -> int:
+        return self.motor.get_current_position()
 
-    def move_motor_horizontally(self):
-        self.camera_snapshot()
-        self.payloadMotor.run_to_position_steps(self.stepHzn)
-        self.stepHzn += 1600
 
-    def move_motor_vertically(self):
-        def move_motor1():
-            self.vertMotor1.run_to_position_steps(self.stepLeft)
-            self.stepLeft += 1626
+class HorizontalMotor(Motor):
+    def __init__(
+        self, name: str, pin_step: int, pin_dir: int, pin_en: int, step_size: int
+    ):
+        super().__init__(name, pin_step, pin_dir, pin_en)
+        self.step_size = step_size
 
-        def move_motor2():
-            self.vertMotor2.run_to_position_steps(self.stepRight)
-            self.stepRight -= 1626
+    def move(self, steps: int):
+        self.motor.run_to_position_steps(steps * self.step_size)
 
-        threads = [
-            threading.Thread(target=move_motor1),
-            threading.Thread(target=move_motor2),
-        ]
 
-        for thread in threads:
-            thread.start()
+class VerticalMotor(Motor):
+    def __init__(
+        self, name: str, pin_step: int, pin_dir: int, pin_en: int, step_size: int
+    ):
+        super().__init__(name, pin_step, pin_dir, pin_en)
+        self.step_size = step_size
 
-        for thread in threads:
-            thread.join()
+    def move(self, steps: int):
+        self.motor.run_to_position_steps(steps * self.step_size)
 
-    def move_vrt_home(self):
-        threads = [
-            threading.Thread(target=motor.run_to_position_steps, args=(0,))
-            for motor in [self.vertMotor1, self.vertMotor2]
-        ]
-        for thread in threads:
-            thread.start()
-        for thread in threads:
-            thread.join()
 
-    def camera_snapshot(self):
-        cap = cv2.VideoCapture(0)
+class MotorFactory:
+    @staticmethod
+    def create_motor(motor_config: Dict) -> Motor:
+        motor_type = motor_config["type"]
+        if motor_type == "horizontal":
+            return HorizontalMotor(
+                motor_config["name"],
+                motor_config["pin_step"],
+                motor_config["pin_dir"],
+                motor_config["pin_en"],
+                motor_config["step_size"],
+            )
+        elif motor_type == "vertical":
+            return VerticalMotor(
+                motor_config["name"],
+                motor_config["pin_step"],
+                motor_config["pin_dir"],
+                motor_config["pin_en"],
+                motor_config["step_size"],
+            )
+        else:
+            raise ValueError(f"Unknown motor type: {motor_type}")
 
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 3840)  # Width
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 2160)  # Height
 
-        frame_count = 0
-        target_frame_count = 100
+class Camera:
+    def __init__(self, camera_id: int = 0, width: int = 3840, height: int = 2160):
+        self.camera_id = camera_id
+        self.width = width
+        self.height = height
 
-        while True:
+    def take_snapshot(self, frame_count: int = 100):
+        cap = cv2.VideoCapture(self.camera_id)
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
+
+        for _ in range(frame_count):
             ret, frame = cap.read()
 
-            frame_count += 1
-            if frame_count >= target_frame_count:
-                timestamp = time.strftime("%Y%m%d-%H%M%S")
-                file_name = f"captured_image_{timestamp}.jpg"
-                cv2.imwrite(file_name, frame)
-                break
+        timestamp = time.strftime("%Y%m%d-%H%M%S")
+        file_name = f"captured_image_{timestamp}.jpg"
+        cv2.imwrite(file_name, frame)
 
         cap.release()
         cv2.destroyAllWindows()
 
-    def move_motor_home(self):
-        for motor in [self.payloadMotor, self.vertMotor1, self.vertMotor2]:
-            motor.run_to_position_steps(0)
+
+class GantrySystem:
+    def __init__(self, motor_configs: List[Dict], camera: Camera):
+        self.motors = {
+            config["name"]: MotorFactory.create_motor(config)
+            for config in motor_configs
+        }
+        self.camera = camera
+        self.gantry_end_hzn = 16000
+        self.gantry_end_vrt = 5000
+
+    def move_horizontally(self, steps: int):
+        self.camera.take_snapshot()
+        self.motors["payload"].move(steps)
+
+    def move_vertically(self, steps: int):
+        threads = [
+            threading.Thread(target=self.motors["vertical1"].move, args=(steps,)),
+            threading.Thread(target=self.motors["vertical2"].move, args=(-steps,)),
+        ]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+
+    def move_all_to_home(self):
+        for motor in self.motors.values():
+            motor.move_to_home()
+
+    def main_movement(self):
+        horizontal_steps = 0
+        vertical_steps = 0
+
+        while True:
+            self.move_horizontally(1)
+            horizontal_steps += 1
+
+            if (
+                horizontal_steps * self.motors["payload"].step_size
+                > self.gantry_end_hzn
+            ):
+                self.motors["payload"].move_to_home()
+                horizontal_steps = 0
+                self.move_vertically(1)
+                vertical_steps += 1
+
+                if (
+                    vertical_steps * self.motors["vertical1"].step_size
+                    > self.gantry_end_vrt
+                ):
+                    self.move_all_to_home()
+                    break
 
 
 if __name__ == "__main__":
-    motor_control = MotorControl()
-    motor_control.main_motor_movement()
+    motor_configs = [
+        {
+            "name": "payload",
+            "type": "horizontal",
+            "pin_step": 21,
+            "pin_dir": 16,
+            "pin_en": 20,
+            "step_size": 1600,
+        },
+        {
+            "name": "vertical1",
+            "type": "vertical",
+            "pin_step": 17,
+            "pin_dir": 27,
+            "pin_en": 22,
+            "step_size": 1626,
+        },
+        {
+            "name": "vertical2",
+            "type": "vertical",
+            "pin_step": 23,
+            "pin_dir": 24,
+            "pin_en": 25,
+            "step_size": 1626,
+        },
+    ]
+    camera = Camera()
+    gantry_system = GantrySystem(motor_configs, camera)
+    gantry_system.main_movement()
