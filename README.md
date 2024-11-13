@@ -12,7 +12,10 @@ It is intended for data acquisition of plants in a vertical tower hydroponic sys
 
 **_This project is in progress currently._**
 
-![gantry](https://github.com/user-attachments/assets/ce5efba7-79d5-4fcc-a520-3c04dc56f80d)
+
+<img src="https://github.com/user-attachments/assets/ff8ed0dc-b8d7-45f9-a177-67d36122af5a" alt="gantry2" width="600"/>
+
+<img src="https://github.com/user-attachments/assets/ce5efba7-79d5-4fcc-a520-3c04dc56f80d" alt="gantry" width="600"/>
 
 ## Disclaimer
 The motor library used can be found [here](https://github.com/Chr157i4n/TMC2209_Raspberry_Pi).
