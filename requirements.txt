@@ -1,2 +1,3 @@
 gpiozero
 stitching
+inquirer
