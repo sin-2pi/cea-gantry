@@ -34,6 +34,6 @@ answer = inquirer.prompt(questions)
 
 if answer.get("functionality") == "Data Collection":
     print("Collecting data...")
-    # motormovement.main_motor_movement()
+    motormovement.main_motor_movement()
 if answer.get("functionality") == "Image Export":
     print("Export images...")
