@@ -1,6 +1,5 @@
 import inquirer
-from yaspin import yaspin
-# import motormovement
+import motormovement
 
 spinner = yaspin()
 asciiart = r"""
